@@ -7,6 +7,10 @@ from modules import c45, predict
 from utils import helper
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib.pyplot as plt
+import pandas as pd
+from pandas.api.types import is_numeric_dtype
 
 class App:
     def __init__(self, root):
@@ -33,6 +37,9 @@ class App:
         self.btn_chart = tk.Button(self.sidebar, text="Tampilkan Basis Data", width=20, command=self.chart)
         self.btn_chart.pack(pady=5)
 
+        self.btn_visualize_all = tk.Button(self.sidebar, text="Visualisasi Semua Fitur", width=20, command=self.visualize_all_features)
+        self.btn_visualize_all.pack(pady=5)
+
         self.btn_predict = tk.Button(self.sidebar, text="Prediksi Mahasiswa", width=20, command=self.show_prediction_form)
         self.btn_predict.pack(pady=5)
         self.btn_predict.config(state=tk.DISABLED)
@@ -41,7 +48,6 @@ class App:
         self.status_label.pack(pady=20)
 
         self.chart_canvas = None
-
         self.data = None
         self.result = None
         self.tree = None
@@ -180,6 +186,67 @@ class App:
         except ValueError as e:
             messagebox.showerror("Input Error", str(e))
     
+    def visualize_all_features(self):
+        if self.data is None:
+            try:
+                self.data = pd.read_csv(helper.DATABASE_PATH)
+            except Exception as e:
+                messagebox.showerror("Error", f"Gagal memuat data: {e}")
+                return
+
+        for widget in self.content.winfo_children():
+            widget.destroy()
+
+        tk.Label(self.content, text="Visualisasi Semua Fitur", font=("Arial", 14, "bold"), bg="white").pack(pady=10)
+
+        numeric_cols = [col for col in self.data.columns if is_numeric_dtype(self.data[col]) and col not in ['Hasil', 'Nama']]
+
+        if not numeric_cols:
+            tk.Label(self.content, text="Tidak ada fitur numerik untuk divisualisasikan.", bg="white").pack(pady=20)
+            return
+        
+        for col in numeric_cols:
+                self.data[col] = self.data[col].astype(int)
+
+        canvas_frame = tk.Frame(self.content, bg="white")
+        canvas_frame.pack(fill="both", expand=True)
+
+        canvas = tk.Canvas(canvas_frame, bg="white")
+        scrollbar = tk.Scrollbar(canvas_frame, orient="vertical", command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas, bg="white")
+
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(
+                scrollregion=canvas.bbox("all")
+            )
+        )
+
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+
+        fig = Figure(figsize=(6, len(numeric_cols) * 2), dpi=100)
+        for i, col in enumerate(numeric_cols):
+            ax = fig.add_subplot(len(numeric_cols), 1, i + 1)
+            self.data[col].plot(kind='hist', bins=15, ax=ax, color='skyblue', edgecolor='black')
+            ax.set_title(f'Distribusi {col}', fontsize=10)
+            ax.set_ylabel("Frekuensi")
+
+        fig.tight_layout()
+
+        chart_canvas = FigureCanvasTkAgg(fig, master=scrollable_frame)
+        chart_widget = chart_canvas.get_tk_widget()
+        chart_widget.pack()
+
+        chart_canvas.draw()
+
+        # Simpan refKerensi agar bisa destroy nanti
+        self.chart_canvas = chart_canvas
+
+
 def start_main_app():
     main_root = tk.Tk()
     app = App(main_root)
