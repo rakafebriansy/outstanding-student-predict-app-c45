@@ -1,5 +1,6 @@
 import tkinter as tk
-from tkinter import filedialog, messagebox
+import os
+from tkinter import messagebox
 import pandas as pd
 from modules import c45, predict
 from utils import helper
@@ -33,6 +34,7 @@ class App:
 
         self.btn_predict = tk.Button(self.sidebar, text="Prediksi Mahasiswa", width=20, command=self.show_prediction_form)
         self.btn_predict.pack(pady=5)
+        self.btn_predict.config(state=tk.DISABLED)
 
         self.status_label = tk.Label(self.content, text="", font=("Arial", 12), bg="white")
         self.status_label.pack(pady=20)
@@ -51,6 +53,7 @@ class App:
 
                 self.status_label.config(text="Model sudah tersedia. Anda bisa langsung melihat hasil.")
                 self.btn_chart.config(state=tk.NORMAL)
+                self.btn_predict.config(state=tk.NORMAL)
 
             except Exception as e:
                 self.status_label.config(text="Gagal memuat model yang tersimpan.")
@@ -58,14 +61,18 @@ class App:
                 self.btn_chart.config(state=tk.DISABLED)
                 print(f"Error: {e}")
 
-    def prepare_model(self):
-        file_path = filedialog.askopenfilename(filetypes=[("CSV Files", "*.csv")])
+    def prepare_model(self):            
+        file_path = helper.DATABASE_PATH
         if not file_path:
             return
         
+        for widget in self.content.winfo_children():
+            widget.destroy()
+
         try:
             self.data = pd.read_csv(file_path)
-            self.status_label.config(text="Data berhasil dimuat. Melatih model...")
+            self.status_label = tk.Label(self.content, text="Data berhasil dimuat. Melatih model...", font=("Arial", 12), bg="white")
+            self.status_label.pack(pady=20)
             self.root.update_idletasks()
 
             self.result, self.tree, clf = c45.c45_process(self.data)
@@ -74,13 +81,15 @@ class App:
 
             self.status_label.config(text="Model berhasil dilatih dan disimpan.")
             self.btn_chart.config(state=tk.NORMAL)
+            self.btn_prepare.config(text="Replace Model")
+            self.btn_predict.config(state=tk.NORMAL)
 
         except Exception as e:
             messagebox.showerror("Error", f"Terjadi kesalahan: {e}")
             self.status_label.config(text="Gagal memproses data.")
             self.btn_chart.config(state=tk.DISABLED)
 
-    def chart(self, filepath="data/dummy_500.csv"):
+    def chart(self, filepath=helper.DATABASE_PATH):
         for widget in self.content.winfo_children():
             widget.destroy()
 
@@ -112,22 +121,45 @@ class App:
         for widget in self.content.winfo_children():
             widget.destroy()
 
-        tk.Label(self.content, text="Form Prediksi Mahasiswa", font=("Arial", 14), bg="white").pack(pady=10)
+        title_label = tk.Label(self.content, text="Form Prediksi Mahasiswa", font=("Arial", 16, "bold"), bg="white")
+        title_label.pack(pady=(20, 10))
+
+        form_frame = tk.Frame(self.content, bg="white")
+        form_frame.pack(pady=10, padx=20, fill="both", expand=True)
 
         fitur = list(self.clf.feature_names_in_) if self.clf is not None else []
 
         self.input_entries = {}
+
+        def validate_numeric(value):
+            if value == "":
+                return True
+            try:
+                float(value)
+                return True
+            except ValueError:
+                return False
+
+        vcmd = (self.root.register(validate_numeric), '%P')
+
         for feature in fitur:
-            frame = tk.Frame(self.content, bg="white")
-            frame.pack(pady=5, fill="x", padx=20)
-            tk.Label(frame, text=feature, width=20, anchor="w", bg="white").pack(side="left")
-            entry = tk.Entry(frame, width=30)
-            entry.pack(side="left", fill="x", expand=True)
+            row = tk.Frame(form_frame, bg="white")
+            row.pack(fill="x", pady=5)
+
+            label = tk.Label(row, text=feature, width=20, anchor="w", bg="white", font=("Arial", 10))
+            label.pack(side="left")
+
+            entry = tk.Entry(row, width=30, validate="key", validatecommand=vcmd)
+            entry.pack(side="left", fill="x", expand=True, padx=(5, 0))
+
             self.input_entries[feature] = entry
 
-        tk.Button(self.content, text="Prediksi", command=self.predict_single).pack(pady=10)
-        self.prediction_label = tk.Label(self.content, text="", font=("Arial", 12), bg="white")
-        self.prediction_label.pack(pady=10)
+        predict_btn = tk.Button(self.content, text="Prediksi", font=("Arial", 11, "bold"), command=self.predict_single)
+        predict_btn.pack(pady=15)
+
+        self.prediction_label = tk.Label(self.content, text="", font=("Arial", 12), bg="white", fg="green")
+        self.prediction_label.pack(pady=(0, 20))
+
 
     def predict_single(self):
         if self.clf is None:
@@ -142,8 +174,11 @@ class App:
             )
         except ValueError as e:
             messagebox.showerror("Input Error", str(e))
-
+    
 if __name__ == "__main__":
+    model_dir = os.path.dirname(helper.MODEL_PATH)
+    if not os.path.exists(model_dir):
+        os.makedirs(model_dir, exist_ok=True)
     root = tk.Tk()
     app = App(root)
     root.mainloop()

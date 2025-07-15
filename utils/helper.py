@@ -3,6 +3,7 @@ import joblib
 
 RESULT_PATH = "model/c45_model.joblib"
 MODEL_PATH = "model/classifier.joblib"
+DATABASE_PATH = "data/dummy_500.csv"
 
 def is_model_available():
     return os.path.exists(MODEL_PATH) and os.path.exists(RESULT_PATH)
