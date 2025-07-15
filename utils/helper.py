@@ -5,7 +5,7 @@ RESULT_PATH = "model/c45_model.joblib"
 MODEL_PATH = "model/classifier.joblib"
 
 def is_model_available():
-    return os.path.exists(MODEL_PATH)
+    return os.path.exists(MODEL_PATH) and os.path.exists(RESULT_PATH)
 
 def save_result(result_and_tree):
     joblib.dump(result_and_tree, RESULT_PATH)

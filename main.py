@@ -18,13 +18,15 @@ class App:
         self.content = tk.Frame(root, bg="white")
         self.content.pack(side="right", fill="both", expand=True)
 
-        self.label = tk.Label(self.sidebar, text="Load Model", bg="#2c3e50", fg="white", font=("Arial", 14))
+        self.label = tk.Label(self.sidebar, text="Pemilihan\nMahasiswa Berprestasi", bg="#2c3e50", fg="white", font=("Arial", 14))
         self.label.pack(pady=20)
 
-        self.btn_prepare = tk.Button(self.sidebar, text="Load Model", width=20, command=self.prepare_model)
+        prepare_text = "Replace Model" if helper.is_model_available() else "Add New Model"
+        self.btn_prepare = tk.Button(self.sidebar, text=prepare_text, width=20, command=self.prepare_model)
         self.btn_prepare.pack(pady=5)
 
-        self.btn_chart = tk.Button(self.sidebar, text="Tampilkan Chart", width=20, command=self.chart)
+
+        self.btn_chart = tk.Button(self.sidebar, text="Tampilkan Basis Data", width=20, command=self.chart)
         self.btn_chart.pack(pady=5)
 
         self.status_label = tk.Label(self.content, text="", font=("Arial", 12), bg="white")
@@ -44,7 +46,6 @@ class App:
 
                 self.status_label.config(text="Model sudah tersedia. Anda bisa langsung melihat hasil.")
                 self.btn_chart.config(state=tk.NORMAL)
-                self.btn_prepare.config(state=tk.DISABLED)
 
             except Exception as e:
                 self.status_label.config(text="Gagal memuat model yang tersimpan.")
