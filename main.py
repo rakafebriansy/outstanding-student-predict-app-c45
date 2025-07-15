@@ -1,7 +1,7 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox
 import pandas as pd
-from modules import c45
+from modules import c45, predict
 from utils import helper
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
@@ -28,6 +28,10 @@ class App:
 
         self.btn_chart = tk.Button(self.sidebar, text="Tampilkan Basis Data", width=20, command=self.chart)
         self.btn_chart.pack(pady=5)
+
+        self.btn_predict = tk.Button(self.sidebar, text="Prediksi Mahasiswa", width=20, command=self.show_prediction_form)
+        self.btn_predict.pack(pady=5)
+
 
         self.status_label = tk.Label(self.content, text="", font=("Arial", 12), bg="white")
         self.status_label.pack(pady=20)
@@ -95,6 +99,43 @@ class App:
         self.chart_canvas = FigureCanvasTkAgg(fig, master=self.content)
         self.chart_canvas.draw()
         self.chart_canvas.get_tk_widget().pack(pady=10)
+    
+    def show_prediction_form(self):
+        for widget in self.content.winfo_children():
+            widget.destroy()
+
+        tk.Label(self.content, text="Form Prediksi Mahasiswa", font=("Arial", 14), bg="white").pack(pady=10)
+
+        # Ambil fitur dari model, bukan dari result
+        fitur = list(self.clf.feature_names_in_) if self.clf is not None else []
+
+        self.input_entries = {}
+        for feature in fitur:
+            frame = tk.Frame(self.content, bg="white")
+            frame.pack(pady=5)
+            tk.Label(frame, text=feature, width=20, anchor="w", bg="white").pack(side="left")
+            entry = tk.Entry(frame, width=30)
+            entry.pack(side="left")
+            self.input_entries[feature] = entry
+
+        tk.Button(self.content, text="Prediksi", command=self.predict_single).pack(pady=10)
+        self.prediction_label = tk.Label(self.content, text="", font=("Arial", 12), bg="white")
+        self.prediction_label.pack(pady=10)
+        
+    def predict_single(self):
+        if self.clf is None:
+            messagebox.showerror("Model Error", "Model belum tersedia.")
+            return
+
+        try:
+            input_data = {feature: float(entry.get()) for feature, entry in self.input_entries.items()}
+            prediction = predict.predict_single_input(self.clf, input_data)
+            self.prediction_label.config(
+                text=f"Prediksi: Mahasiswa {'Terpilih' if prediction == 'Ya' else 'Tidak Terpilih'}"
+            )
+        except ValueError as e:
+            messagebox.showerror("Input Error", str(e))
+
 
 if __name__ == "__main__":
     root = tk.Tk()
