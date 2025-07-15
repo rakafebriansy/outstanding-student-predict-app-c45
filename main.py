@@ -1,5 +1,5 @@
 import tkinter as tk
-import os
+import login
 from tkinter import messagebox
 import pandas as pd
 from modules import c45, predict
@@ -51,7 +51,7 @@ class App:
                 self.result, self.tree = helper.load_result()
                 self.clf = helper.load_model()
 
-                self.status_label.config(text="Model sudah tersedia. Anda bisa langsung melihat hasil.")
+                self.status_label.config(text="Model sudah tersedia. Anda bisa langsung melakukan prediksi.")
                 self.btn_chart.config(state=tk.NORMAL)
                 self.btn_predict.config(state=tk.NORMAL)
 
@@ -175,10 +175,12 @@ class App:
         except ValueError as e:
             messagebox.showerror("Input Error", str(e))
     
+def start_main_app():
+    main_root = tk.Tk()
+    app = App(main_root)
+    main_root.mainloop()
+
 if __name__ == "__main__":
-    model_dir = os.path.dirname(helper.MODEL_PATH)
-    if not os.path.exists(model_dir):
-        os.makedirs(model_dir, exist_ok=True)
-    root = tk.Tk()
-    app = App(root)
-    root.mainloop()
+    login_root = tk.Tk()
+    login_app = login.LoginWindow(login_root, start_main_app)
+    login_root.mainloop()
