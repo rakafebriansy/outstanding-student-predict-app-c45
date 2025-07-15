@@ -12,11 +12,14 @@ class App:
         self.root.title("Aplikasi Pemilihan Mahasiswa Berprestasi")
         self.root.geometry("900x600")
 
+        self.root.rowconfigure(0, weight=1)
+        self.root.columnconfigure(1, weight=1)
+
         self.sidebar = tk.Frame(root, width=200, bg="#2c3e50")
-        self.sidebar.pack(side="left", fill="y")
+        self.sidebar.grid(row=0, column=0, sticky="ns")
 
         self.content = tk.Frame(root, bg="white")
-        self.content.pack(side="right", fill="both", expand=True)
+        self.content.grid(row=0, column=1, sticky="nsew")
 
         self.label = tk.Label(self.sidebar, text="Pemilihan\nMahasiswa Berprestasi", bg="#2c3e50", fg="white", font=("Arial", 14))
         self.label.pack(pady=20)
@@ -25,13 +28,11 @@ class App:
         self.btn_prepare = tk.Button(self.sidebar, text=prepare_text, width=20, command=self.prepare_model)
         self.btn_prepare.pack(pady=5)
 
-
         self.btn_chart = tk.Button(self.sidebar, text="Tampilkan Basis Data", width=20, command=self.chart)
         self.btn_chart.pack(pady=5)
 
         self.btn_predict = tk.Button(self.sidebar, text="Prediksi Mahasiswa", width=20, command=self.show_prediction_form)
         self.btn_predict.pack(pady=5)
-
 
         self.status_label = tk.Label(self.content, text="", font=("Arial", 12), bg="white")
         self.status_label.pack(pady=20)
@@ -80,6 +81,12 @@ class App:
             self.btn_chart.config(state=tk.DISABLED)
 
     def chart(self, filepath="data/dummy_500.csv"):
+        for widget in self.content.winfo_children():
+            widget.destroy()
+
+        self.status_label = tk.Label(self.content, text="Visualisasi Data", font=("Arial", 14), bg="white")
+        self.status_label.pack(pady=10)
+
         if self.result is None:
             data = pd.read_csv(filepath)
             self.result, _, _ = c45.c45_process(data)
@@ -88,7 +95,7 @@ class App:
             self.chart_canvas.get_tk_widget().destroy()
 
         summary = self.result['Hasil'].value_counts()
-        
+
         fig = Figure(figsize=(6, 4), dpi=100)
         ax = fig.add_subplot(111)
         summary.plot(kind='bar', ax=ax, color='skyblue')
@@ -98,30 +105,30 @@ class App:
 
         self.chart_canvas = FigureCanvasTkAgg(fig, master=self.content)
         self.chart_canvas.draw()
-        self.chart_canvas.get_tk_widget().pack(pady=10)
-    
+        canvas_widget = self.chart_canvas.get_tk_widget()
+        canvas_widget.pack(expand=True, fill="both", padx=10, pady=10)
+
     def show_prediction_form(self):
         for widget in self.content.winfo_children():
             widget.destroy()
 
         tk.Label(self.content, text="Form Prediksi Mahasiswa", font=("Arial", 14), bg="white").pack(pady=10)
 
-        # Ambil fitur dari model, bukan dari result
         fitur = list(self.clf.feature_names_in_) if self.clf is not None else []
 
         self.input_entries = {}
         for feature in fitur:
             frame = tk.Frame(self.content, bg="white")
-            frame.pack(pady=5)
+            frame.pack(pady=5, fill="x", padx=20)
             tk.Label(frame, text=feature, width=20, anchor="w", bg="white").pack(side="left")
             entry = tk.Entry(frame, width=30)
-            entry.pack(side="left")
+            entry.pack(side="left", fill="x", expand=True)
             self.input_entries[feature] = entry
 
         tk.Button(self.content, text="Prediksi", command=self.predict_single).pack(pady=10)
         self.prediction_label = tk.Label(self.content, text="", font=("Arial", 12), bg="white")
         self.prediction_label.pack(pady=10)
-        
+
     def predict_single(self):
         if self.clf is None:
             messagebox.showerror("Model Error", "Model belum tersedia.")
@@ -135,7 +142,6 @@ class App:
             )
         except ValueError as e:
             messagebox.showerror("Input Error", str(e))
-
 
 if __name__ == "__main__":
     root = tk.Tk()
