@@ -1,5 +1,6 @@
 import tkinter as tk
 import login
+import os
 from tkinter import messagebox
 import pandas as pd
 from modules import c45, predict
@@ -65,6 +66,10 @@ class App:
         file_path = helper.DATABASE_PATH
         if not file_path:
             return
+        
+        dir_path = os.path.dirname(helper.MODEL_PATH)
+        if dir_path and not os.path.exists(dir_path):
+            os.makedirs(dir_path, exist_ok=True)
         
         for widget in self.content.winfo_children():
             widget.destroy()
