@@ -68,6 +68,14 @@ class App:
                 self.btn_chart.config(state=tk.DISABLED)
                 print(f"Error: {e}")
 
+    def refresh_model(self):
+        try:
+            self.result, self.tree = helper.load_result()
+            self.clf = helper.load_model()
+
+        except Exception as e:
+            print(f"Error: {e}")
+
     def prepare_model(self):            
         file_path = helper.DATABASE_PATH
         if not file_path:
@@ -137,6 +145,11 @@ class App:
 
         form_frame = tk.Frame(self.content, bg="white")
         form_frame.pack(pady=10, padx=20, fill="both", expand=True)
+
+        if not helper.is_model_available():
+            return
+        
+        self.refresh_model()
 
         fitur = list(self.clf.feature_names_in_) if self.clf is not None else []
 
