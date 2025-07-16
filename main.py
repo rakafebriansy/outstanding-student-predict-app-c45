@@ -3,7 +3,7 @@ import login
 import os
 from tkinter import messagebox
 import pandas as pd
-from modules import c45, predict
+from modules import c45
 from utils import helper
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
@@ -187,17 +187,64 @@ class App:
 
     def predict_single(self):
         if self.clf is None:
-            messagebox.showerror("Model Error", "Model belum tersedia.")
+            messagebox.showerror("Model Belum Siap", "Model belum tersedia. Silakan latih terlebih dahulu.")
             return
 
-        try:
-            input_data = {feature: float(entry.get()) for feature, entry in self.input_entries.items()}
-            prediction = predict.predict_single_input(self.clf, input_data)
-            self.prediction_label.config(
-                text=f"Prediksi: Mahasiswa {'Terpilih' if prediction == 'Ya' else 'Tidak Terpilih'}"
-            )
-        except ValueError as e:
-            messagebox.showerror("Input Error", str(e))
+        input_data = []
+        for feature in self.clf.feature_names_in_:
+            value = self.input_entries[feature].get()
+            if value.strip() == "":
+                messagebox.showerror("Input Tidak Lengkap", f"Nilai untuk '{feature}' harus diisi.")
+                return
+            try:
+                input_data.append(float(value))
+            except ValueError:
+                messagebox.showerror("Input Tidak Valid", f"Nilai '{feature}' harus berupa angka.")
+                return
+
+        df_input = pd.DataFrame([input_data], columns=self.clf.feature_names_in_)
+        pred = self.clf.predict(df_input)[0]
+
+        for widget in self.content.winfo_children():
+            widget.destroy()
+
+        hasil_text = "Hasil Prediksi: " + ("TERPILIH" if pred.lower() == "terpilih" else "TIDAK TERPILIH")
+        hasil_label = tk.Label(self.content, text=hasil_text, font=("Arial", 14, "bold"), bg="white", fg="green" if pred.lower() == "terpilih" else "red")
+        hasil_label.pack(pady=20)
+
+        fig, ax = plt.subplots(figsize=(8, 4))
+        features = self.clf.feature_names_in_
+        values = input_data
+
+        bars = ax.bar(features, values, color='skyblue', edgecolor='black')
+
+        max_vals = []
+        for feat, val in zip(features, values):
+            if 'ipk' in feat.lower():
+                max_vals.append(4)
+            elif val <= 10:
+                max_vals.append(10)
+            elif val <= 50:
+                max_vals.append(50)
+            elif val <= 100:
+                max_vals.append(100)
+            else:
+                max_vals.append(val + 10)
+
+        for bar, ymax in zip(bars, max_vals):
+            ax.set_ylim(0, max(max_vals))
+
+        ax.set_title("Visualisasi Nilai Atribut Mahasiswa")
+        ax.set_ylabel("Nilai")
+        ax.tick_params(axis='x', rotation=45)
+
+        fig.tight_layout()
+
+        canvas = FigureCanvasTkAgg(fig, master=self.content)
+        canvas.draw()
+        canvas.get_tk_widget().pack(pady=10)
+
+        plt.close(fig)
     
     def visualize_all_features(self):
         if self.data is None:
